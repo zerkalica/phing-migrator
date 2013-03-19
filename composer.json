@@ -1,0 +1,14 @@
+{
+    "name": "phing/migrator",
+    "description": "The phing based migrator",
+    "autoload": {
+        "psr-0": { "": "src/" }
+    },
+    "config": {
+        "bin-dir" : "vendor/bin"
+    },
+    "require": {
+        "php": ">=5.3",
+        "phing/phing": "2.5.*"
+    }
+}

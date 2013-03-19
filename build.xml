@@ -1,0 +1,73 @@
+<?xml version="1.0" ?>
+<project name="PurpleMonkey" basedir="." default="build">
+
+    <!-- Sets the DSTAMP, TSTAMP and TODAY properties -->
+    <tstamp/>
+
+    <!-- Load our configuration -->
+    <property file="config/build.properties" />
+
+    <target name="clean" description="Clean up and create artifact directories">
+        <delete dir="${build.tmp.dir}" />
+    </target>
+
+    <target name="prepare" description="Create build dirs">
+        <mkdir dir="${build.tmp.dir}/scripts"/>
+    </target>
+
+    <target name="migration.create" description="Create migration template for feature use">
+        <property name="build.migration.templatefile" value="${migrations.deltas.dir}/${DSTAMP}${TSTAMP}-dbdeploy.sql" />
+        <copy file="config/sql/migrations-template.sql" tofile="${build.migration.templatefile}" />
+    </target>
+
+    <target name="migration.prepare" description="Create migration table in db">
+        <property file="${db.file}" />
+        <pdosqlexec
+            url="mysql:host=${database_host};dbname=${database_name};port=${database_port}"
+            userid="${database_user}"
+            password="${database_password}"
+            encoding="${database_encoding}"
+        >
+            <transaction src="config/sql/migrations-init.sql" />
+        </pdosqlexec>
+    </target>
+
+    <target name="migration.up" depends="prepare, migration.prepare" description="Apply incremental migrations">
+        <property file="${db.file}" />
+        <property name="build.dbdeploy.deployfile" value="${build.tmp.dir}/scripts/up-${DSTAMP}${TSTAMP}.sql" />
+        <property name="build.dbdeploy.undofile" value="${build.tmp.dir}/scripts/down-${DSTAMP}${TSTAMP}.sql" />
+
+        <dbdeploy 
+            url="mysql:host=${database_host};dbname=${database_name};port=${database_port}"
+            userid="${database_user}"
+            password="${database_password}"
+            dir="${migrations.deltas.dir}"
+            outputfile="${build.dbdeploy.deployfile}"
+            undooutputfile="${build.dbdeploy.undofile}" />
+
+        <pdosqlexec
+            url="mysql:host=${database_host};dbname=${database_name};port=${database_port}"
+            userid="${database_user}"
+            password="${database_password}"
+            encoding="${database_encoding}"
+        >
+            <transaction src="${build.dbdeploy.deployfile}" />
+        </pdosqlexec>
+    </target>
+
+    <target name="migration.patch" description="Apply idempotent patches and fixes to db">
+        <property file="${db.file}" />
+        <pdosqlexec
+            url="mysql:host=${database_host};dbname=${database_name};port=${database_port}"
+            userid="${database_user}"
+            password="${database_password}"
+            encoding="${database_encoding}"
+        >
+            <fileset dir="${migrations.patches.dir}">
+                <include name="*.sql"/>
+            </fileset>
+        </pdosqlexec>
+    </target>
+
+    <target name="migration" depends="migration.up, migration.patch" description="Apply migration deltas and patches" />
+</project>

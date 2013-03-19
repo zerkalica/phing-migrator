@@ -1,0 +1,16 @@
+build/*
+vendor/*
+composer.lock
+composer.phar
+
+projectFilesBackup
+.DS_Store
+.idea
+.project
+.plugins
+.buildpath
+.eclipse
+.settings
+.~lock*
+atlassian-ide-plugin.xml
+nbproject/*
